@@ -1,0 +1,252 @@
+// ======================================================
+// TB6612FNG - Motores
+// ======================================================
+
+// Motor A (Esquerdo)
+const int PWMA = 9;
+const int AIN1 = 8;
+const int AIN2 = 7;
+
+// Motor B (Direito)
+const int PWMB = 10;
+const int BIN1 = 12;
+const int BIN2 = 11;
+
+// ======================================================
+// Sensores TCRT5000
+// ======================================================
+
+const int extEsquerdo = A5;
+const int esquerdo = A4;
+const int centro = A3;
+const int direito = A2;
+const int extDireito = A1;
+
+// ======================================================
+// Configurações
+// ======================================================
+
+const int limiarSensor = 55;
+
+const int velBase = 120;
+const int velCurva = 90;
+const int parado = 0;
+
+// ======================================================
+// Variáveis globais dos sensores
+// ======================================================
+
+bool pretoExtEsquerdo;
+bool pretoEsquerdo;
+bool pretoCentro;
+bool pretoDireito;
+bool pretoExtDireito;
+
+// ======================================================
+
+void setup() {
+
+  // Motores
+  pinMode(PWMA, OUTPUT);
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+
+  pinMode(PWMB, OUTPUT);
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
+
+  // Sensores
+  pinMode(extEsquerdo, INPUT);
+  pinMode(esquerdo, INPUT);
+  pinMode(centro, INPUT);
+  pinMode(direito, INPUT);
+  pinMode(extDireito, INPUT);
+
+  Serial.begin(9600);
+}
+
+// ======================================================
+
+void loop() {
+
+  //leitura dos sensores
+  leituraTCRT();
+
+  // Linha bem à esquerda
+  if (pretoExtEsquerdo && !pretoExtDireito) {
+    virarEsquerda90(velBase, 900);
+  }
+  // Linha bem à direita
+  else if (!pretoExtEsquerdo && pretoExtDireito) {
+    virarDireita90(velBase, 900);
+  }
+  // Vendo apenas Branco
+  else if (!pretoEsquerdo && !pretoDireito) {
+    moverFrente(velBase);
+  }
+  // Linha puxando para esquerda
+  else if (pretoEsquerdo && !pretoDireito) {
+    moverEsquerda(velBase);
+  }
+  // Linha puxando para direita
+  else if (!pretoEsquerdo && pretoDireito) {
+    moverDireita(velBase);
+  }
+
+  // Perdeu a linha
+  else {
+    pararMotores();
+  }
+}
+
+// ======================================================
+// Leitura dos sensores
+// ======================================================
+
+void leituraTCRT() {
+
+  pretoExtEsquerdo = analogRead(extEsquerdo) > limiarSensor;
+  pretoEsquerdo = analogRead(esquerdo) > limiarSensor;
+  pretoCentro = analogRead(centro) > limiarSensor;
+  pretoDireito = analogRead(direito) > limiarSensor;
+  pretoExtDireito = analogRead(extDireito) > limiarSensor;
+
+  Serial.print(pretoExtEsquerdo);
+  Serial.print(" ");
+
+  Serial.print(pretoEsquerdo);
+  Serial.print(" ");
+
+  Serial.print(pretoCentro);
+  Serial.print(" ");
+
+  Serial.print(pretoDireito);
+  Serial.print(" ");
+
+  Serial.println(pretoExtDireito);
+
+}
+
+// ======================================================
+// Movimentos
+// ======================================================
+
+void moverFrente(int vel) {
+
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+
+  analogWrite(PWMA, vel + 35);
+  analogWrite(PWMB, vel);
+}
+
+void moverTras(int vel) {
+
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, HIGH);
+
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+
+  analogWrite(PWMA, vel + 20);
+  analogWrite(PWMB, vel);
+}
+
+void moverDireita(int vel) {
+
+  analogWrite(PWMA, (vel + 35) / 3);
+  analogWrite(PWMB, vel);
+
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+}
+
+void moverEsquerda(int vel) {
+
+  analogWrite(PWMA, vel + 35);
+  analogWrite(PWMB, vel / 3);
+
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+}
+
+void pararMotores() {
+
+  analogWrite(PWMA, 0);
+  analogWrite(PWMB, 0);
+}
+
+// ======================================================
+// Curvas de 90°
+// ======================================================
+
+void virarEsquerda90(int vel, int time) {
+  // Frente para alinhar
+  moverFrente(velBase);
+
+  delay(300);
+
+  // Esquerdo frente
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+
+  // Direito ré
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+
+  analogWrite(PWMA, vel + 35);
+  analogWrite(PWMB, vel);
+
+  delay(time);
+
+  pararMotores();
+}
+
+void virarDireita90(int vel, int time) {
+  // Frente para alinhar
+  moverFrente(velBase);
+
+  delay(300);
+
+  // Esquerdo ré
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, HIGH);
+
+  // Direito frente
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+
+  analogWrite(PWMA, vel + 35);
+  analogWrite(PWMB, vel);
+
+  delay(time);
+
+  pararMotores();
+}
+
+// Curvar de 180°
+
+void virar180(int vel, int time) {
+
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+
+  analogWrite(PWMA, vel + 35);
+  analogWrite(PWMB, vel);
+
+  delay(time);
+
+  pararMotores();
+}
